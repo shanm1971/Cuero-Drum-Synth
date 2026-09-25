@@ -24,7 +24,7 @@ Created by Shannon McDowell · Using Claude Opus 5.5
 
 ## Quick start
 
-1. Download `cuero-drum-synth.html`.
+1. Download `cuero-drum-synth-V1.html`.
 2. Open it in a modern web browser (Chrome, Edge, Firefox or Safari).
 3. Click any drumhead to hear it. Browsers only allow sound after your first click.
 4. Press **Space** or click **Play** to start the sequencer.
