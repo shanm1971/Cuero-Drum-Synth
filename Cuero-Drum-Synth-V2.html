@@ -279,6 +279,16 @@ button,input{font:inherit;color:inherit}
 /* mixer: name lights up when the instrument sounds */
 .sname{transition:color .25s, text-shadow .25s}
 .sname.hit{color:var(--brass);text-shadow:0 0 8px var(--brass), 0 0 2px var(--brass);transition:none}
+/* two pages */
+.seg.pages button{padding:8px 14px;font-weight:500}
+.seg.pages button[aria-pressed="true"]{background:var(--brass);color:var(--onaccent)}
+.topright .transport{flex-wrap:wrap;justify-content:flex-end}
+.xtop .xport{flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px 28px;padding:14px 18px}
+.xtop .xport .xhead{margin:0}
+.xtop .xport .xrow{flex:0 1 auto}
+.xtop .xport .xpos{flex:0 0 190px}
+.xtop .xport .tempo{flex:1 1 260px;max-width:420px}
+.xtop .xport .note{flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -292,12 +302,16 @@ button,input{font:inherit;color:inherit}
     <p class="credit">Created by Shannon McDowell <span aria-hidden="true">·</span> Using Claude Opus 5.5</p>
     <div class="topright">
     <div class="transport">
+      <div class="seg pages" role="tablist" aria-label="Page">
+        <button id="page-play" role="tab" data-page="play" aria-selected="true" aria-pressed="true">Instruments &amp; mixer</button>
+        <button id="page-seq" role="tab" data-page="seq" aria-selected="false" aria-pressed="false">Sequencer &amp; more</button>
+      </div>
       <button class="resetall" id="resetAll" title="Return every drum, the player and room settings, mixer levels and balance, and the tempo to their starting values">Reset all</button>
     </div>
     </div>
   </header>
 
-  <div class="main">
+  <div class="main" id="pagePlay">
     <div class="leftcol">
     <section class="stage" aria-label="Drums">
       <div class="congas">
@@ -372,6 +386,7 @@ button,input{font:inherit;color:inherit}
     </div>
   </div>
 
+  <div class="xtop" id="xportTop" hidden></div>
   <section class="seq" aria-label="Sequencer">
     <div class="seqhead">
       <div class="seqtitle">
@@ -519,7 +534,7 @@ button,input{font:inherit;color:inherit}
       </div>
     </section>
 
-  <section class="themes" aria-label="Color themes">
+  <section class="themes" id="themesSec" aria-label="Color themes">
     <div class="mixhead"><h2>Colors <small>pick a look for Cuero</small></h2></div>
     <div class="swatches" id="swatches"><button class="swatch" data-skin="rawhide" id="skin-rawhide" aria-pressed="false"><span class="chips"><i style="background:#17110d"></i><i style="background:#211813"></i><i style="background:#cf9f45"></i><i style="background:#f0e5d4"></i></span>Rawhide (default)</button><button class="swatch" data-skin="midnight" id="skin-midnight" aria-pressed="false"><span class="chips"><i style="background:#0f141c"></i><i style="background:#161d28"></i><i style="background:#5fb3d9"></i><i style="background:#e6edf5"></i></span>Midnight blue</button><button class="swatch" data-skin="forest" id="skin-forest" aria-pressed="false"><span class="chips"><i style="background:#111712"></i><i style="background:#18211a"></i><i style="background:#9cc36b"></i><i style="background:#e7eee4"></i></span>Forest</button><button class="swatch" data-skin="neon" id="skin-neon" aria-pressed="false"><span class="chips"><i style="background:#120c1c"></i><i style="background:#1a1228"></i><i style="background:#ff4fa3"></i><i style="background:#f2e9ff"></i></span>Neon night</button><button class="swatch" data-skin="charcoal" id="skin-charcoal" aria-pressed="false"><span class="chips"><i style="background:#141414"></i><i style="background:#1c1c1c"></i><i style="background:#d8d8d8"></i><i style="background:#ececec"></i></span>Charcoal</button><button class="swatch" data-skin="studio" id="skin-studio" aria-pressed="false"><span class="chips"><i style="background:#ece5d9"></i><i style="background:#faf7f1"></i><i style="background:#a8701a"></i><i style="background:#2a1f17"></i></span>Studio light</button></div>
     <p class="seqnote">Your choice is remembered in this browser. The sounds don't change, only the colors.</p>
@@ -2385,6 +2400,22 @@ function flashStrip(id){
   flashTimers[id] = setTimeout(() => el.classList.remove("hit"), 120);
 }
 
+// ---------- Pages ----------
+const PAGE_STORE = "cuero.page.v1";
+function showPage(pg, save){
+  const seqPage = pg === "seq";
+  const xport = document.querySelector(".xport"), top = document.getElementById("xportTop"), rc = document.querySelector(".rightcol");
+  document.getElementById("pagePlay").hidden = seqPage;
+  top.hidden = !seqPage;
+  [".seq", ".midi", "#themesSec"].forEach(q => { document.querySelector(q).hidden = !seqPage; });
+  if (seqPage) top.append(xport); else rc.append(xport);          // the one Transport follows you between pages
+  document.querySelectorAll("[data-page]").forEach(b => { const on = b.dataset.page === pg; b.setAttribute("aria-selected", on); b.setAttribute("aria-pressed", on); });
+  if (seqPage){ drawTabs(); } else { layout(); refreshPanel(); }
+  window.scrollTo({top:0});
+  if (save){ try { localStorage.setItem(PAGE_STORE, pg); } catch(e){} }
+}
+document.querySelectorAll("[data-page]").forEach(b => b.addEventListener("click", () => showPage(b.dataset.page, true)));
+
 // ---------- Boot ----------
 loadTuning(); loadMix(); loadMidi();
 buildDrums(); buildPercPads(); buildStrokes(); buildPanel(); buildTuningUI();
@@ -2393,6 +2424,8 @@ layout();
 load(); syncGridUI(); syncPosUI(); setLoop(SQ.loop); renderGrid(); drawTabs();
 buildMixer(); buildMidi();
 try { applySkin(localStorage.getItem(SKIN_STORE) || "rawhide", false); } catch(e){ applySkin("rawhide", false); }
+let startPage = "play"; try { startPage = localStorage.getItem(PAGE_STORE) === "seq" ? "seq" : "play"; } catch(e){}
+showPage(startPage, false);
 let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { layout(); refreshPanel(); }, 120); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { layout(); refreshPanel(); });
 })();
