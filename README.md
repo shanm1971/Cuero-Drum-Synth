@@ -6,7 +6,7 @@
 
 Created by Shannon McDowell · Using Claude Opus 5.5
 
-![Cuero Drum Synth interface](Screenshot.jpg)
+![Cuero Drum Synth interface](Screenshot.png)
 
 ---
 
